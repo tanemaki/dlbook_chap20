@@ -1,0 +1,590 @@
+#+TITLE: Chapter 20: Deep Generative Models\\
+#+SUBTITLE: Deep Learning Book by I. Goodfellow, Y. Bengio and A. Courville \\
+#+SUBTITLE: OIST Deep Learning Reading Group
+#+AUTHOR: Makoto Otsuka
+#+DATE: 2016-08-26 Fri
+#+OPTIONS: H:2 toc:t num:t
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [dvipdfmx,presentation]
+#+STARTUP: beamer
+#+LATEX_HEADER:\usepackage{pxjahyper}
+#+LATEX_HEADER:\usepackage{beamerthemeshadow}
+#+LATEX_HEADER:\usepackage[utf8x]{inputenc}
+#+LATEX_HEADER:\usepackage[T1]{fontenc}
+#+LATEX_HEADER:\usepackage{txfonts}
+#+LATEX_HEADER:\usepackage{textcomp}
+# +LATEX_HEADER:\usepackage{newpxtext,newpxmath}
+#+LATEX_HEADER:\usepackage[french,english,japanese]{babel}
+# +LATEX_HEADER:\usetheme{Warsaw}
+#+LATEX_HEADER:\usetheme{Antibes}
+#+LATEX_HEADER:\usefonttheme[onlymath]{serif}
+#+LATEX_HEADER:\def\bf{\mathbf}
+
+* 20.6 Convolutional Boltzmann Machines
+** 20.6 Convolutional Boltzmann Machines
+- High dimensional inputs (e.g., images) requires computational, memory, and statistical resources
+- Approach: Use convolution
+  - Works well also with RBM (Desjardins and Bengio, 2008)
+  - Difficult to generalize **pooling operation** in energy-based model
+    - $2^{9} = 512$ energy function evaluations per $3\times3$ pooling units
+*** Probabilistic max pooling (Lee et al, 2009)
+- At most one unit may be active at a time
+  - $n+1$ possible states
+  - $+1$ for the states with all units off (E = 0)
+- No overlapoing pooling regions :(
+
+
+** 20.6 Convolutional Boltzmann Machines
+*** Convolutional DBM with probabilistic max pooling (Lee et al, 2009)
+- Pros
+  - Possible to fill in the missing portions of its input
+- Cons
+  - Challenging to make it work in practice
+  - CNNs with supervised training objective usually perfoms better
+  - Cannot change the size of pooling region to accept images in different sizes
+    - Partition function changes as the size of the input changes
+    - Variable sized inputs can be accepted if output feature maps can be scaled automatically
+  - Difficult to handle image boundary
+
+* 20.7 Boltzmann Machine for Structured or Sequential Outputs
+** 20.7 Boltzmann Machine for Structured or Sequential Outputs
+- Tools for modeling structured ouput can be used for modeling sequences
+- Conditional RBM (Taylor et al., 2007)
+- Conditional RBM + spectral hashing (Mnih et al., 2011)
+- Factored conditional RBM for modeling motion style (Taylor and Hinton, 2009)
+- RTRBM (Sutskever, Hinton, Taylor, 2009)
+- RNN-RBM for learning musical notes (Boulanger-Lewandowski et al., 2012)
+
+* 20.8 Other Boltzmann Machines
+** 20.8 Other Boltzmann Machines
+- Discriminative RBMs (Larochelle and Bengio, 2008)
+  - maximize $\log p(y | \mathbf{v})$
+- Higher-order BMs
+  - Higher-order BMs (Sejnowski, 1987)
+  - Mixture of RBMs (Nair and Hinton, 2009)
+  - Two groups of hidden units (Luo et al., 2011)
+  - Point-wise gated BMs (PGBMs) (Sohn et al. 2013)
+#+ATTR_LaTeX: :width 0.30\textwidth
+[[./figure/nair2009fig1b.png]]
+[[./figure/luo2011fig1.png]]
+[[./figure/sohn2013fig1a.png]]
+
+* 20.9 Back-Propagation through Random Operations
+** 20.9 Back-Propagation through Random Operations
+- $\bf{x}$: input variable
+- $\bf{z}$: simple distribution (e.g., uniform, Gaussian)
+- $f(\bf{x}, \bf{z})$ appears stochastic
+- If $f$ is continuous and differentiable, we can apply BP as usual
+
+** Example: Drawing samples from a Gaussian distribution
+
+- It seems counter intuitive to take a derivative of the sampling process $y$ with respect to $\mu$ or $\sigma$
+
+\centering
+$$y \sim \mathcal{N}(\mu, \sigma^{2})$$
+- But it make sense if we rewrite this sampling process as follows:
+\centering
+$$y = \mu + \sigma z$, $\quad z \sim \mathcal{N}(0, 1)$$
+- Note that $z$ does not depend on $\mu$ nor $\sigma$
+\centering
+$$
+\mu = g_{1}(\bf{x}; \theta_{1}), \quad \sigma = g_{2}(\bf{x}; \theta_{2})
+$$
+
+** Reparametrization trick
+- Reparameterization trick (stochastic back-propagation, perturbation analysis)
+- $\bf{\omega}$: a variable containing both parameters $\theta$, and if applicable, the inputs $\bf{x}$
+- We can rewrite
+\centering
+$$
+y \sim p(y | \omega)
+$$
+
+as
+
+$$
+y = f(z; \omega) = \mu_{\theta_{1}} + \sigma_{\theta_{2}} z
+$$
+- $\omega$ is not the function of $\bf{z}$
+- $\bf{z}$ is not the function of $\omega$
+* 20.10 Directed Generative Nets
+** 20.10 Directed Generative Nets
+- Since 2013, directed generative nets became popular
+- 20.10.1 Sigmoid Belief Nets
+- 20.10.2 Differentiable Generator Nets
+- 20.10.3 Variational Autoencoders (VAEs)
+- 20.10.4 Generative Adversarial Networks (GANs)
+- 20.10.5 Generative Moment Matching Networks
+- 20.10.6 Convolutional Generative Networks
+- 20.10.7 Auto-Regressive Networks
+- 20.10.8 Linear Auto-Regressive Networks
+- 20.10.9 Neural Auto-Regressive Networks
+- 20.10.10 Neural autoregressive density estimator (NADE)
+** 20.10.1 Sigmoid Belief Nets
+- Proposed by Neal (1990)
+- Universal approximator of binary visible units (Sutskever and Hinton, 2008)
+- Inferece is hard
+  - Mean field inference is intractable
+  - Approximate lowerbound (Saul et al., 1996) is only applicable for small networks
+  - SBNs combined with an inference net need to rely on unreliable BP through discrete sampling processes
+- Recent approaches enable fast training
+  - Importance sampling + reweighted wake-sleep (Bornschein and Bengio, 2015)
+  - Bidirectional Helmnoltz machines (Bornschein et al, 2015)
+
+** 20.10.2 Differentiable Generator Nets
+
+# *** Differentiable Generator Nets
+- The model transforms samples of latent varialbes $\bf{z}$ to 
+  - samples $\bf{x}$ directly (Approach 1) or
+  - distributions over samples $\bf{x}$ (Approach 2)
+  using differentiable function $g(\bf{z}; \theta^{(g)})$ (usually NN)
+- Parameterized computational procedures for generating samples
+- Examples
+  - Variational autoencoders (VAE)
+    - generator net + inference net
+  - Generative adversarial networks (GAN)
+    - generator net + discriminator net
+  - Generative moment matching networks
+
+** Approach 1: Direct Sampling (1/2)
+
+- Generating samples from a multivariate Gaussian distribution
+  - $\bf{z} \sim \mathcal{N}(\bf{0}, I)$
+  - $g(\bf{z}; \theta^{(g)})$ is given by
+\begin{align*}
+\bf{x} &= g(\bf{z}; \theta^{(g)}) = \bf{\mu} + \bf{L} \bf{z} \tag{20.71}\\
+\Sigma &= \bf{L} \bf{L}^{\top} \quad \cdots \text{Cholesky decomposition}
+\end{align*}
+
+- Inverse transform sampling (Devroye, 2013)
+  - $z \sim U(0, 1)$
+  - $g(z)$ is given by the inverse of the cdf $F(x) = \int_{-\infty}^{x} p(v) dv$
+
+- $g()$ is transforming the distribution over $\bf{z}$ into the desired distribution over $\bf{x}$
+
+** Approach 1: Direct Sampling (2/2)
+
+- For invertible, differentiable, continuous $g$, 
+
+\begin{align*}
+p_{x}(\bf{x}) d \bf{x} &= p_{z}(\bf{z}) d \bf{z} \\
+p_{x}(g(\bf{z})) \left| \det (\frac{\partial g}{\partial \bf{z}}) \right| &= p_{z}(\bf{z}) \tag{20.72} \\
+p_{x}(\bf{x}) &= \frac{p_{z}(g^{-1}(\bf{x}))}{\left| \det (\frac{\partial g}{\partial \bf{z}}) \right|} \tag{20.73}
+\end{align*}
+
+where $\bf{x} = g(\bf{z})$
+
+- Usually difficult to evaluate $\log p(\bf{x})$ directly
+- Often use indirect means of learning $g(\cdot)$
+
+** Approach 2: Defining conditional distribution
+
+- Defining conditional distribution
+
+\begin{align*}
+p(x_{i} = 1 | \bf{z}) &= g(\bf{z})_{i} \tag{20.74} \\
+\end{align*}
+
+- Marginalizing it out to define $p_{g}(\bf{x})$
+
+\begin{align*}
+p(\bf{x}) &= \mathbf{E}_{\bf{z}} p(\bf{x} | \bf{z}) \tag{20.75}
+\end{align*}
+
+** Direct sampling v.s. defining conditional distribution
+
+- Approach 1: Emitting samples directly from $p_{g}(\bf{x})$
+  - Pros
+    - No longer forced to use carefully-designed conditional distributions
+  - Cons
+    - Capable of generating only continuous data
+- Approach 2: Emitting parameters of $p_{g}(\bf{x})$
+  - Pros
+    - Capable of generating discrete data as well as continuous data
+  - Cons
+    - Need to use carefully-designed conditional distributions
+
+** Properties of Differentiable Generator Nets
+
+- Diffrentiable generator nets were motivated by the success of BP applied to SL
+- But unsupervised generative modeling is more difficult than SL
+- Differentiable generator nets need to solve two objectives
+  - How to arrange $\bf{z}$ space in a useful way
+  - How to map from $\bf{z}$ to $\bf{x}$
+- Chair generation experiment (Dosovitskiy et al., 2015)
+  - Mapping between $\bf{z}$ and $\bf{x}$ is given beforehand (mapping is deterministic)
+  - Result implies DGNs have sufficient model capacity and it is optimizable
+  - But, don't know what happends when mapping between $\bf{z}$ and $\bf{x}$ is non-deterministic
+
+** 20.10.3 Variational Autoencoders (VAEs)
+- Proposed by Kingma (2013) and Rezende et al. (2014)
+- Directed model that use learned approximate inference
+- Can be trained purely with gradient-based methods
+- Great blog posts about VAEs: [[http://blog.fastforwardlabs.com/post/148842796218/introducing-variational-autoencoders-in-prose-and][(link 1]], [[http://blog.fastforwardlabs.com/post/149329060653/under-the-hood-of-the-variational-autoencoder-in][link 2]])
+*** Building blocks of VAE
+- $p_{\mathrm{model}}(\bf{z})\quad$ Code distribution (prior)
+- $g(\bf{z}; \theta^{(g)})\quad$ Differentiable generator net (decoder)
+- $p_{\mathrm{model}}(\bf{x} | \bf{z}) = p_{\mathrm{model}}(\bf{x}; g(\bf{z}; \theta^{(g)}))\quad$ Generative model
+- $f(\bf{x}; \theta^{(f)})\quad$ Approximate inference net (encoder)
+- $q(\bf{z} | \bf{x}) = q(\bf{z}; f(\bf{x}; \theta^{(f)}))\quad$ Recognition model
+
+
+
+
+
+** Training VAEs
+- Instead of directly maximizing log likelihood
+\begin{align*}
+\log p_{\mathrm{model}} (\bf{x}) &= \mathcal{L}(q) + D_{\mathrm{KL}}(q(\bf{z} | \bf{x}) || p_{\mathrm{model}}(\bf{z} | \bf{x}))
+\end{align*}
+
+- Train VAE by maximizing variational lower bound $\mathcal{L}(q)$
+\begin{align*}
+\mathcal{L}(q) 
+&= 
+\bf{E}_{\bf{z} \sim q(\bf{z} | \bf{x})} \log p_{\mathrm{model}}(\bf{z}, \bf{x}) 
++ \mathcal{H}(q(\bf{z} | \bf{x})) \tag{20.76}\\
+&= \bf{E}_{\bf{z} \sim q(\bf{z} | \bf{x})} \log p_{\mathrm{model}}(\bf{x} | \bf{z})
++ \bf{E}_{\bf{z} \sim q(\bf{z} | \bf{x})} \log p_{\mathrm{model}}(\bf{z})
+- \bf{E}_{\bf{z} \sim q(\bf{z} | \bf{x})} \log q(\bf{z} | \bf{x}) \\
+&= 
+\bf{E}_{\bf{z} \sim q(\bf{z} | \bf{x})} \log p_{\mathrm{model}}(\bf{x} | \bf{z})
+- D_{\mathrm{KL}}( q(\bf{z} | \bf{x}) || p_{\mathrm{model}}(\bf{z})) \tag{20.77}\\
+&\le \log p_{\mathrm{model}} (\bf{x}) \tag{20.78}
+\end{align*}
+
+- Interpretation
+  - $\mathcal{H}(q(\bf{z} | \bf{x}))$ encourages higher variance
+  - $D_{\mathrm{KL}}( q(\bf{z} | \bf{x}) || p_{\mathrm{model}}(\bf{z}))$ encourages smaller distance between approximate posterior and prior
+  - $\bf{E}_{\bf{z} \sim q(\bf{z} | \bf{x})} \log p_{\mathrm{model}}(\bf{x} | \bf{z})$ encourages lower reconstruction error
+
+** Traditional approach to variational inference and learning
+- Infer $q(\cdot)$ via optimization algorithm (e.g., iterated fixed point equations)
+- Iterative scheme is slow
+- Often require the ability to compute $\bf{E}_{\bf{z} \sim q} \log p_{\mathrm{model}}(\bf{z}, \bf{x})$ in closed form
+
+** Main idea behind VAE
+- Train a parameteric encoder $f(\bf{x}; \theta^{(f)})$ for $q(\bf{z} | \bf{x}) = q(\bf{z}; f(\bf{x}; \theta^{(f)}))$
+- If $\bf{z}$ is continuous, we can use BP
+- All the expectation in $\mathcal{L}$ may be approximated by MC sampling
+
+** Shortcomings of VAE
+1. Generated images are blurry probably due to
+  - ML estimate
+    - Minimizing $D_{\mathrm{KL}}(p || q)$ instead of $D_{\mathrm{KL}}(q || p)$
+    - Tendency to ignore small changes in images (Theis et al., 2015; Huszar 2015)
+  - Use of Gaussian model $p_{\mathrm{model}}(\bf{x}; g(\bf{z}))$
+\centering
+#+ATTR_LaTeX: :width 0.60\textwidth
+[[./figure/dlbook_fig3_6.png]]
+2. Tend to use only small subset of $\bf{z}$
+
+** Extension of VAE (1/2)
+- VAE is much easier to extend than Boltzmann machines
+- Deep recurrent attention writer (DRAW) model (Gregor et al., 2015)
+  - Recurrent encoder + recurrent decoder + attention
+- Variational RNNs (Chung et al, 2015b)
+  - Recurrent encoder and decoder
+  - Unlike traditional RNN, it also has variability in latent space
+- Importance weighted autoencoder or IWAE (Burda et al., 2015) objective
+  - Equivalent to the traditional lower bound when $k=1$
+  - Tighter bound for $\log p_{\mathrm{model}}(\bf{x})$ when $k$ increases
+\begin{align*}
+\mathcal{L}_{k}(\bf{x}, q) = \bf{E}_{\bf{z}^{(1)}, \ldots, \bf{z}^{(k)} \sim q(\bf{z} | \bf{x})}
+\left[
+\log \frac{1}{k} \sum_{i=1}^{k} \frac{p_{\mathrm{model}(\bf{x}, \bf{z}^{(i)})}}{q(\bf{z}^{(i)} | \bf{x})}
+\right]
+\end{align*}
+
+** Extension of VAE (2/2)
+- Some interesting connections to the multi-prediction DBM (MP-DBM) in Fig. 20.5 and other approaches that involve back-propagation through the approximate inference graph (Goodfellow et al., 2013b; Stoyanov et al., 2011; Brakel et al., 2013).
+- VAE is defined for arbitrary computational graphs
+  - No need to restrict the choice of models to those with tractable mean field fixed point equations
+- One disadvantage of the variational autoencoder is that it learns an inference network for only one problem, inferring $\bf{z}$ given $\bf{x}$.
+
+** Manifold learning with VAE
+
+\centering
+#+ATTR_LaTeX: :width 0.90\textwidth
+[[./figure/dlbook_fig20_6.png]]
+
+** 20.10.4 Generative Adversarial Networks (GANs)
+
+- Proposed by Goodfellow et al. (2014c)
+- Example of differentiable generator networks
+- Generator net: $g(\bf{z}; \theta^{(g)})$
+  - Directly produces samples: $\bf{x} = g(\bf{z}; \theta^{(g)})$
+  - Payoff is $- v(\theta^{(g)}, \theta^{(d)})$
+  - Attempts to fool the classifier into believing its samples are real
+- Discriminator net: $d(\bf{x}; \theta^{(d)})$ (probability of $\bf{x}$ being real)
+  - Payoff is $v(\theta^{(g)}, \theta^{(d)})$
+  - Attempts to learn to correctly classify samples as real or fake
+\begin{align*}
+g* &= \arg \min_{g} \max_{d} v(g, d) \\
+v(\theta^{(g)}, \theta^{(d)}) &= \bf{E}_{\bf{x} \sim p_{\mathrm{data}}} \log d(\bf{x})
++ \bf{E}_{\bf{x} \sim p_{\mathrm{model}}} \log (1 - d(\bf{x}))
+\end{align*}
+
+** Difficulties in GANs
+- Learning is difficult in GAN
+  - E.g.) $v(a, b) = a b$
+  - Note that the equilibria for a minimax game are not local minima of $v$
+  - Instead, they are points that are simultaneously minima for both players' costs.
+  - This means that they are saddle points of $v$ that are local minima with respect to the first player's parameters and local maxima with respect to the second player's parameters.
+- Alternative formulation of payoffs (Goodfellow et al., 2014c)
+** Deep convolutional GAN (DCGAN) 
+- Proposed by Radford et al. (2015)
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.50
+    :END:
+\centering
+#+ATTR_LaTeX: :width \textwidth
+[[./figure/radford2015fig1.png]]
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.50
+    :END:
+\centering
+#+ATTR_LaTeX: :width \textwidth
+[[./figure/radford2015fig7.png]]
+
+** Conditional GANs and LAPGAN
+- Conditional GANs (Mirza and Osindero, 2014)
+  - Learn to sample from $p(\bf{x} | \bf{y})$ rather than $p(\bf{x})$
+- LAPGAN (Denton et al. 2015) uses series of conditional GANs with Laplacian pyramid
+\centering
+#+ATTR_LaTeX: :width \textwidth
+[[./figure/denton2015fig2.png]]
+
+# #+ATTR_LaTeX: :width \textwidth
+#  [[./figure/denton2015fig5.png]]
+
+** Generated Images: DCGAN and LAPGAN
+
+\centering
+#+ATTR_LaTeX: :width 1.0\textwidth
+[[./figure/dlbook_fig20_7.png]]
+
+** Properties of GAN
+
+- It can fit distribution that assign zero probability to the training points.
+- Somehow tracing out manifold that is spanned by training data
+- Add Gaussian noise to all of the generated values to ensure non-zero probabilities to all points
+- Dropout seems to be important in the discriminator network
+  - In particular, units should be stochastically dropped while computing the gradient for the generator network to follow.
+
+** Models similar to GAN
+
+- GAN is designed for differentiable generator net.
+- Similar principles can be used to train other kind of models
+- **Self-supervised boosting** can be used to train RBM generator to fool a logistic regression discriminator (Welling et al., 2002)
+
+** 20.10.5 Generative Moment Matching Networks
+
+- Proposed by Li et al., 2015; Dziugaite et al., 2015
+- Example of differentiable generator networks
+- Unlike VAEs and GANs, no need to pair with other network
+- Trained with **moment matching**
+\begin{align*}
+\bf{E}_{\bf{x}} \prod_{i} x_{i}^{n_{i}} \tag{20.82}\\
+\bf{n} = [n_{1}, \ldots, n_{d}]^{\top}
+\end{align*}
+
+- Matching all moment for all dimensions is infeasible
+- Instead, minimize the maximum mean discrepancy, MMD (Scholkopf and Smola, 2002; Gretton et al., 2012)
+  - Measures the error in the first moments in an infinite-dimensional space implicitly defined by kernel
+  - MMD cost is 0 if and only if the two distributions being compared are equal
+
+** Generative Moment Matching Networks
+- Samples from GMMN is not visually pleasing
+- Visual can be improved if generator is combined with an autoencoder
+- Need large batch size to obtain reliable estimate of the moment
+
+** 20.10.6 Convolutional Generative Networks
+
+- When generating images, it is useful to include convoluitonal structure (Goodfellow et al., 2014c; Dosovitskiy et al., 2015)
+- Pooling function is not invertible
+- "Un-pooling" (Dosovitskiy et al., 2015) 
+  - Inverse of max-pooling
+  - Upper-left corner takes maximum value and other cells are set to 0
+  - Samples generated by the model are visually pleasing
+
+\centering
+#+ATTR_LaTeX: :width 0.9\textwidth
+[[./figure/dosovitskiy2014fig3.png]]
+
+** 20.10.7 Auto-Regressive Networks
+- Directed probabilistic models with no latent random variables
+- Fully-visible Bayes networks (FVBNs)
+- NADE (Larochelle and Murray, 2011)
+  - One type of auto-regressive network
+- Reuse of features
+  - Statistical advantages (fewer unique parameters)
+  - Computational advantages (less computation)
+** 20.10.8 Linear Auto-Regressive Networksv
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.60
+    :END:
+- Simplest form of auto-regressive network
+  - No hidden units
+  - No shared parameters or features
+- Examples
+  - Logistic auto-regressive network (binary)
+- Introduced by Frey (1998)
+- $O(d^{2})$ parameters ($d$ variables)
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+# \centering
+#+ATTR_LaTeX: :width \textwidth
+[[./figure/dlbook_fig20_8.png]]
+
+** 20.10.9 Neural Auto-Regressive Networks
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.60
+    :END:
+- Introduced by Bengio and Bengio (2000a, b)
+- Model capacity can be increased
+- Generalization can be improved by parameter and feature sharing
+- Two advantages of using NN
+  1. Can capture nonlinear dependency with limited number of parameters
+  2. Left-to-right architecture allows one to merge all the NN into one
+
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+# \centering
+#+ATTR_LaTeX: :width 1.1\textwidth
+[[./figure/dlbook_fig20_9.png]]
+
+** 20.10.10 Neural autoregressive density estimator (NADE)
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.60
+    :END:
+-  Proposed by Larochelle and Murray (2011)
+- Successful recent form of neural auto-regressive network (NAN)
+- NAN with parameter sharing
+\begin{align*}
+W_{j,k,i}^{'} &= W_{k, i} \tag{20.83} \\
+W_{j,k,i}^{'} &= 0 \text{ if } j < i
+\end{align*}
+- $i$ -th input node
+- $j$ -th hidden node
+- $k$ -th element of $j$ -th hidden node
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.40
+    :END:
+\centering
+#+ATTR_LaTeX: :width 1.1\textwidth
+[[./figure/dlbook_fig20_10.png]]
+
+** Variants of NADE
+- NADE-k (Raiko et al, 2014)
+  - k-step mean field recurrent inference
+- RNADE (Uria et al., 2013)
+  - Processing continuous-valued data using Gaussian mixture
+  - Use pseudo-gradient to reduce unstable gradient calculation caused by coupling of $\mu_{i}$ and $\sigma_{i}^{2}$
+- Ensemble of NADE models handling reordered inputs $o$ (Murray and Larochelle, 2014)
+  - Better generalization than a fixed-order model
+\begin{align*}
+p_{\mathrm{ensemble}}(\bf{x}) = \frac{1}{k} \sum_{i=1}^{k} p(\bf{x} | o^{(i)})
+\end{align*}
+- Deep NADE is computationally expensive and not so much gain
+
+* 20.11 Drawing Samples from Autoencoders
+** 20.11 Drawing Samples from Autoencoders
+- Underlying connections between score matching, denoising autoencoders, and contractive autoencoders
+- They are learning data distributions, but how can we sample data?
+- VAE - ancestral sampling
+- CAE 
+  - Repeated encoding and decoding with injected noise will induce a random walk along the surface of the manifold (Rifai et al., 2012; Mesnil et al., 2012)
+  - Manifold diffusion technique (kind of MC)
+- DAE
+  - More general MC
+
+** 20.11.1 Markov Chain Associated with any DAE
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.50
+    :END:
+- What noise to inject and where?
+- How to construct such a MC for generalized DAE
+
+*** A block
+    :PROPERTIES:
+    :BEAMER_col: 0.50
+    :END:
+\centering
+#+ATTR_LaTeX: :width 1.1\textwidth
+[[./figure/dlbook_fig20_11.png]]
+
+#+ATTR_LaTeX: :width 1.1\textwidth
+[[./figure/dlbook_fig20_11b.png]]
+
+** 20.11.3 Walk-Back Training Procedure
+- Proposed by Bengio et al. (2013c) to accerelate the convergence rate of generative training of DAE
+- Includes alternative multiple stochastic encode-decode steps
+\centering
+#+ATTR_LaTeX: :width \textwidth
+[[./figure/bengio2013cfig2.png]]
+
+* 20.12 Generative Stochastic Networks (GSNs)
+** 20.12 Generative Stochastic Networks (GSNs) (1/2)
+- Proposed by Bengio et al. (2014)
+- Generalization of DAE
+  - Include latent varialbe $\bf{h}$ in the generative Markov chain
+- Generative process is parameterized by two distributions
+  - $p(\bf{x}^{(k)} | \bf{h}^{(k)})$: reconstruction distribution
+  - $p(\bf{h}^{(k)} | \bf{h}^{(k-1)}, \bf{x}^{(k-1)})$: state transition distribution
+
+\centering
+#+ATTR_LaTeX: :width \textwidth
+[[./figure/bengio2014gsnfig2.png]]
+
+
+** 20.12 Generative Stochastic Networks (GSNs) (2/2)
+- Properties of GSNs
+  - Joint distribution is defined implicitly by MC if it exists
+  - Maximize $\log p(\bf{x}^{(k)} = \bf{x} | \bf{h}^{(k)})$ where $\bf{x}^{(0)} = \bf{x}$
+  - Walk-back training protocol was used to improve training convergence
+- 20.12.1 Discriminant GSNs
+  - Possible to model $p(\bf{y} | \bf{x})$ instead of $p(\bf{x})$ with GSNs
+
+* 20.13 Other Generation Schemes
+** 20.13 Other Generation Schemes
+- So far, MCMC sampling, ancestral sampling, or some mixture of the two
+- Diffusion inversion objective for learning a generative model based on non-equilibrium thermodynamics (Sohl-Dickstein et al., 2015)
+  - Structured -> unstructured
+  - Running this process backward
+- Approximate Bayesian computation (ABC) framework (Rubin et al., 1984)
+  - Samples are rejected or modified in order to make the moments of selected functions of the samples match those of the desired distribution.
+  - This is not a moment matching because ABC changes the samples themselves
+* 20.14 Evaluating Generative Models
+** 20.14 Evaluating Generative Models (1/2)
+- Usually we cannot evaluate $\log p(\bf{x})$ directly
+- Which is better?
+  - Stochastic estimate of the log-likelihood for model A
+  - Deterministic lower bound on the log-likelihood for model B
+- High likelihood estimate $\log p(\bf{x}) = \log \tilde{p}(\bf{x}) - \log Z$ can be obtained due to
+  - Good model, or
+  - Bad AIS implimentation (underestimate Z)
+
+** 20.14 Evaluating Generative Models (2/2)
+- Changing preprocessing step is unacceptable when comparing different generative models
+  - e.g., multiplying the input by 0.1 will artificially increase likelihood by a factor of 10
+  - It is essential to compare real-valued MNIST models only to other real-valued models and binary-valued models only to other binary-valued models
+  - Use exactly same binalization scheme for all compared models
+- Visual inspection can be used but not a reliable measure
+  - Poor model can produce good examples by overfitting
+- Need to develop some other ways to evaluate generative models
+  - You can get extremely high likelihood by asigning arbitrarily low variance to background pixels that never changes
+
+** Conclusions
+- Deep generative models are important building blocks for AI systems
